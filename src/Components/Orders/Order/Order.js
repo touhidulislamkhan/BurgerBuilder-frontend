@@ -1,5 +1,4 @@
 import React from 'react';
-import { resetIngredients } from '../../../redux/actionCreators';
 
 const Order = props => {
     let ingredientSummary = props.order.ingredients.map(item => {

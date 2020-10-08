@@ -1,6 +1,5 @@
 import * as actionTypes from './actionTypes';
 import axios from 'axios';
-import { connect } from 'react-redux';
 
 export const authSuccess = (token, userId) => {
     return {

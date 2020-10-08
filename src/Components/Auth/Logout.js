@@ -3,7 +3,6 @@ import { Redirect } from 'react-router-dom';
 import { connect } from 'react-redux';
 
 import { logout } from '../../redux/authActionCreators';
-import { reducer } from '../../redux/reducer';
 
 const mapDispatchToProps = dispatch => {
     return {
