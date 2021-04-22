@@ -1,5 +1,6 @@
 import * as actionTypes from './actionTypes';
 import axios from 'axios';
+import jwt_decode from 'jwt-decode'
 
 export const authSuccess = (token, userId) => {
     return {
@@ -25,33 +26,61 @@ export const authFailed = errMsg => {
     }
 }
 
+const storeLocally = (token) => {
+    const decoded = jwt_decode(token)
+
+    localStorage.setItem('token', token);
+    localStorage.setItem('userId', decoded.user_id);
+    const expirationTime = new Date(new Date(decoded.exp * 1000));
+    localStorage.setItem('expirationTime', expirationTime);
+    return decoded.user_id
+}
+
 export const auth = (email, password, mode) => dispatch => {
     dispatch(authLoading(true));
     const authData = {
         email: email,
         password: password,
-        returnSecureToken: true
     }
 
     let authUrl = null;
     if (mode === "Sign Up") {
-        authUrl = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=";
+        authUrl = "http://127.0.0.1:8000/api/user/";
     } else {
-        authUrl = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=";
+        authUrl = "http://127.0.0.1:8000/api/token/";
     }
-    const API_KEY = "AIzaSyAUvoMGTF-hmQeXOC01_IRKZ-ZcHahxAZ4";
-    axios.post(authUrl + API_KEY, authData)
+
+    const header = {
+        headers: {
+            "Content-Type": 'application/json',
+        }
+    }
+
+    axios.post(authUrl, authData, header)
         .then(response => {
             dispatch(authLoading(false));
-            localStorage.setItem('token', response.data.idToken);
-            localStorage.setItem('userId', response.data.localId);
-            const expirationTime = new Date(new Date().getTime() + response.data.expiresIn * 1000);
-            localStorage.setItem('expirationTime', expirationTime);
-            dispatch(authSuccess(response.data.idToken, response.data.localId))
+            if (mode !== 'Sign Up') {
+                const token = response.data.access;
+                const user_id = storeLocally(token);
+
+                dispatch(authSuccess(token, user_id));
+            } else {
+                dispatch(authLoading(true));
+                return axios.post('http://127.0.0.1:8000/api/token/', authData, header)
+                    .then(response => {
+                        const token = response.data.access;
+                        const user_id = storeLocally(token);
+
+                        dispatch(authSuccess(token, user_id));
+                    })
+            }
+
+            console.log(jwt_decode(response.data.access));
         })
         .catch(err => {
             dispatch(authLoading(false));
-            dispatch(authFailed(err.response.data.error.message));
+            const key = Object.keys(err.response.data)[0]
+            dispatch(authFailed(`${key.toUpperCase()} : ${err.response.data[key]}`));
         })
 }
 
